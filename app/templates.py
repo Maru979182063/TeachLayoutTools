@@ -1,5 +1,4 @@
-"""HTML rendering helpers for template output and PDF fidelity preview output."""
-
+"""模板输出和 PDF 保真预览输出使用的 HTML 渲染辅助函数。"""
 from __future__ import annotations
 
 import base64
@@ -15,7 +14,7 @@ from PIL import Image, ImageDraw
 
 
 def logo_data_url() -> str:
-    """Load the embedded logo image used by generated HTML pages."""
+    """加载生成 HTML 页面时嵌入使用的 logo 图片。"""
     logo = Path(__file__).resolve().parent / "static" / "assets" / "component-library" / "background-logo.png"
     if not logo.exists():
         return ""
@@ -24,7 +23,7 @@ def logo_data_url() -> str:
 
 
 def format_math_text(text: str) -> str:
-    """Escape plain text and apply a few lightweight math-friendly HTML tweaks."""
+    """对普通文本做转义，并补上一些轻量的数学排版处理。"""
     escaped = html.escape(text)
     escaped = re.sub(r"([a-zA-Z])(\d)", r"\\1<sup>\\2</sup>", escaped)
     escaped = re.sub(r"\s{5,}", " ", escaped)
@@ -32,7 +31,7 @@ def format_math_text(text: str) -> str:
 
 
 def format_stem(stem: str) -> Markup:
-    """Format one question stem and lay out multiple-choice options when detected."""
+    """格式化单题题干，并在识别到选择项时排出选项布局。"""
     text = stem.strip()
     option_match = re.search(r"(A\.|B\.|C\.|D\.)", text, flags=re.S)
     if not option_match:
@@ -268,7 +267,7 @@ FIDELITY_TEMPLATE = Template(
 
 
 def render_html(material_spec: dict, generated_name: str) -> str:
-    """Render the template-based HTML output used for non-fidelity flows."""
+    """渲染非保真链路使用的模板版 HTML 输出。"""
     questions = []
     for question in material_spec.get("questions", []):
         copied = dict(question)
@@ -289,7 +288,7 @@ def render_html(material_spec: dict, generated_name: str) -> str:
 
 
 def render_pdf_fidelity_html(pdf_path: Path, material_spec: dict, generated_name: str) -> str:
-    """Render a PDF fidelity preview that reuses page images instead of rewriting content."""
+    """渲染 PDF 保真预览，复用页面图像而不是重写正文内容。"""
     pdf = pdfium.PdfDocument(str(pdf_path))
     blank_page_map = {item["page_number"]: item for item in material_spec.get("blank_page_plan", [])}
     pages = []

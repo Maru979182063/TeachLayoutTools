@@ -1,5 +1,4 @@
-"""Runtime settings and filesystem locations loaded from environment variables."""
-
+"""从环境变量加载运行时配置和文件目录。"""
 from __future__ import annotations
 
 import os
@@ -11,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def _path_env(name: str, default: Path) -> Path:
-    """Resolve a path from an environment variable and make sure the directory exists."""
+    """从环境变量解析目录路径，并确保目录已经创建。"""
     raw = os.getenv(name, "").strip()
     path = Path(raw) if raw else default
     path.mkdir(parents=True, exist_ok=True)
@@ -19,7 +18,7 @@ def _path_env(name: str, default: Path) -> Path:
 
 
 def _int_env(name: str, default: int, minimum: int = 1) -> int:
-    """Read an integer environment variable and clamp it to the requested minimum."""
+    """读取整数型环境变量，并按最小值要求做下限保护。"""
     raw = os.getenv(name, "").strip()
     if not raw:
         return default
@@ -31,7 +30,7 @@ def _int_env(name: str, default: int, minimum: int = 1) -> int:
 
 
 def _bool_env(name: str, default: bool = False) -> bool:
-    """Interpret a boolean environment variable using common truthy strings."""
+    """按常见真值字符串解析布尔型环境变量。"""
     raw = os.getenv(name, "").strip().lower()
     if not raw:
         return default
@@ -50,7 +49,7 @@ DEFAULT_SQLITE_URL = f"sqlite:///{(DATA_DIR / 'app.db').as_posix()}"
 
 @dataclass(frozen=True)
 class RuntimeSettings:
-    """Immutable runtime settings snapshot used across the service."""
+    """服务全局共享的不可变运行时配置快照。"""
     database_url: str = os.getenv("APP_DATABASE_URL", DEFAULT_SQLITE_URL).strip()
     worker_count: int = _int_env("APP_WORKER_COUNT", 2)
     queue_poll_seconds: int = _int_env("APP_QUEUE_POLL_SECONDS", 1)

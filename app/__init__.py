@@ -1,3 +1,1 @@
-"""Application package for the async material generation service."""
-
-
+"""异步材料生成服务的应用包。"""

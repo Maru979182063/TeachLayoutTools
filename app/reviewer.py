@@ -1,5 +1,4 @@
-"""Rule-based HTML review helpers used before generated output can be approved."""
-
+"""基于规则的 HTML 审核辅助函数，用于产物批准前检查。"""
 from __future__ import annotations
 
 import re
@@ -25,7 +24,7 @@ STANDARD_PROFILE = {
 
 
 def normalize_visible_text(html: str) -> str:
-    """Strip HTML markup down to comparable visible text for rule checks."""
+    """把 HTML 标记剥离成可比较的可见文本，供规则检查使用。"""
     text = re.sub(r"<script.*?</script>", "", html, flags=re.S | re.I)
     text = re.sub(r"<style.*?</style>", "", text, flags=re.S | re.I)
     text = re.sub(r"<[^>]+>", " ", text)
@@ -33,7 +32,7 @@ def normalize_visible_text(html: str) -> str:
 
 
 def review_html(html: str, material_spec: dict, existing_artifact_names: list[str]) -> dict:
-    """Run rule checks against rendered HTML and return structured issues."""
+    """对渲染后的 HTML 执行规则检查，并返回结构化问题列表。"""
     issues = []
     visible = normalize_visible_text(html)
     source_type = material_spec.get("source_type")

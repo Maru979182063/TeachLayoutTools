@@ -1,5 +1,4 @@
-"""Filename-driven target inference used for batch job defaults."""
-
+"""根据文件名推断批量任务默认目标信息的辅助逻辑。"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -20,7 +19,7 @@ SUBJECT_KEYWORDS = [
 
 
 def _infer_subject(stem: str) -> str:
-    """Infer subject."""
+    """推断学科。"""
     for keyword, subject in SUBJECT_KEYWORDS:
         if keyword in stem:
             return subject
@@ -28,7 +27,7 @@ def _infer_subject(stem: str) -> str:
 
 
 def infer_target_from_filename(filename: str) -> dict:
-    """Infer subject, version, and material defaults from the source filename alone."""
+    """仅根据源文件名推断学科、版本和材料默认信息。"""
     stem = Path(filename).stem
     version = "student"
     if any(token in stem for token in ["\u53c2\u8003\u7b54\u6848", "\u5168\u89e3\u5168\u6790", "\u89e3\u6790\u7248", "\u7b54\u6848\u7248"]):

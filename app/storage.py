@@ -1,5 +1,4 @@
-"""Upload and artifact storage helpers that keep files on disk and metadata in the database."""
-
+"""负责把文件落盘、把元数据写进数据库的上传与产物存储辅助函数。"""
 from __future__ import annotations
 
 import shutil
@@ -16,7 +15,7 @@ from .utils import new_id, sha256_bytes, sha256_file, to_json
 
 
 def detect_type(filename: str, content_type: str) -> tuple[str, str]:
-    """Validate the uploaded file extension and normalize the MIME type we store."""
+    """校验上传文件扩展名，并规范化要保存的 MIME 类型。"""
     ext = Path(filename).suffix.lower()
     allowed = {
         ".pdf": ("pdf", "application/pdf"),
@@ -33,7 +32,7 @@ def detect_type(filename: str, content_type: str) -> tuple[str, str]:
 
 
 async def save_upload(upload: UploadFile) -> tuple[Path, int, str]:
-    """Write an uploaded file to disk and return its path, size, and checksum."""
+    """把上传文件写入磁盘，并返回路径、大小和校验和。"""
     file_id = new_id("FILE")
     target = UPLOAD_DIR / f"{file_id}{Path(upload.filename or '').suffix.lower()}"
     size = 0
@@ -62,7 +61,7 @@ def write_artifact(
     reviewed: bool = False,
     success_retention: bool = False,
 ) -> Artifact:
-    """Persist one generated artifact file and create its database row."""
+    """保存一个生成产物文件，并创建对应数据库记录。"""
     artifact_id = new_id("ART")
     ext = Path(name).suffix or ".json"
     path = ARTIFACT_DIR / f"{artifact_id}{ext}"
@@ -96,13 +95,13 @@ def write_artifact(
 
 
 def remove_artifact_file(artifact: Artifact) -> None:
-    """Delete an artifact file from disk when retention cleanup runs."""
+    """在保留期清理时从磁盘删除产物文件。"""
     path = Path(artifact.storage_path)
     if path.exists():
         path.unlink()
 
 
 def copy_to_path(src: Path, dst: Path) -> None:
-    """Copy a generated file to a target path, creating parent folders first."""
+    """把生成文件复制到目标路径，必要时先创建父目录。"""
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, dst)

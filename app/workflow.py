@@ -1,5 +1,4 @@
-"""Background queue orchestration, status transitions, artifact generation, and approval flow."""
-
+"""后台队列调度、状态流转、产物生成和审批流程。"""
 from __future__ import annotations
 
 import queue
@@ -26,7 +25,7 @@ from .templates import render_html, render_pdf_fidelity_html
 from .utils import from_json, new_id, to_json
 from .visual_review import build_student_blank_plan, review_fidelity_html_visual
 
-# In-memory worker state shared by the API process.
+# API 进程内共享的队列与工作线程状态。
 STEP_TIMEOUT_SECONDS = 500
 WORKER_RETRIES = 3
 QUEUE_WAIT_TIMEOUT_SECONDS = max(1, settings.queue_poll_seconds)
@@ -41,7 +40,7 @@ _JOB_SEQUENCE = count()
 
 
 def _placeholder_pdf_bytes() -> bytes:
-    """Create a single blank PDF page for test mode or graceful fallback delivery."""
+    """为测试模式或优雅降级生成一个单页空白 PDF。"""
     buffer = BytesIO()
     writer = PdfWriter()
     writer.add_blank_page(width=612, height=792)
@@ -62,7 +61,7 @@ ALLOWED_TRANSITIONS = {
 }
 
 
-# Job status and notification helpers.
+# 任务状态流转与通知记录辅助函数。
 def add_event(
     db: Session,
     job: MaterialJob,
@@ -73,7 +72,7 @@ def add_event(
     level: str = "info",
     metadata: dict | None = None,
 ) -> None:
-    """Append a structured workflow event to the job history."""
+    """向任务历史中追加一条结构化工作流事件。"""
     db.add(
         JobEvent(
             id=new_id("EVT"),
@@ -92,7 +91,7 @@ def add_event(
 
 
 def transition(db: Session, job: MaterialJob, to_status: JobStatus, step: str | None = None) -> bool:
-    """Validate and commit a job status transition."""
+    """校验并提交一次任务状态流转。"""
     if job.status in TERMINAL_STATUSES and job.status != JobStatus.HUMAN_REVIEW_REQUIRED:
         return False
     allowed = ALLOWED_TRANSITIONS.get(job.status, set())
@@ -117,7 +116,7 @@ def transition(db: Session, job: MaterialJob, to_status: JobStatus, step: str | 
 
 
 def request_cancel(db: Session, job: MaterialJob) -> None:
-    """Cancel a job and emit the matching status event and notification."""
+    """取消任务，并写入对应状态事件和通知记录。"""
     if job.status in {JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.CANCELLED}:
         raise ValueError("JOB_NOT_CANCELABLE")
     job.cancel_requested = True
@@ -131,14 +130,14 @@ def request_cancel(db: Session, job: MaterialJob) -> None:
 
 
 def ensure_not_cancelled(db: Session, job: MaterialJob) -> None:
-    """Ensure not cancelled."""
+    """确保not cancelled。"""
     db.refresh(job)
     if job.cancel_requested or job.status == JobStatus.CANCELLED:
         raise RuntimeError("JOB_CANCELLED")
 
 
 def create_notification(db: Session, job: MaterialJob, event_type: str) -> None:
-    """Create a deduplicated notification row for the current job state."""
+    """为当前任务状态创建一条去重后的通知记录。"""
     dedupe = f"{job.id}:{job.status.value}:mock:mock-default"
     exists = db.query(NotificationEvent).filter(NotificationEvent.dedupe_key == dedupe).first()
     if exists:
@@ -163,14 +162,14 @@ def create_notification(db: Session, job: MaterialJob, event_type: str) -> None:
         )
 
 
-# Queue lifecycle helpers.
+# 队列生命周期辅助函数。
 def start_job(job_id: str) -> None:
-    """Push a new job into the background queue."""
+    """把新任务压入后台队列。"""
     enqueue_job(job_id)
 
 
 def runtime_status() -> dict:
-    """Report worker and queue counts for runtime diagnostics."""
+    """返回工作线程和队列数量，供运行时诊断使用。"""
     with _QUEUE_LOCK:
         return {
             "worker_count": len(_WORKER_THREADS),
@@ -182,14 +181,14 @@ def runtime_status() -> dict:
 
 
 def _effective_worker_count() -> int:
-    """Handle effective worker count."""
+    """处理生效 工作线程 count。"""
     if settings.database_url.startswith("sqlite"):
         return 1
     return settings.worker_count
 
 
 def ensure_worker_pool_started() -> None:
-    """Start background worker threads once for the current process."""
+    """为当前进程启动一次后台工作线程池。"""
     global _WORKERS_STARTED
     with _QUEUE_LOCK:
         if _WORKERS_STARTED:
@@ -207,7 +206,7 @@ def ensure_worker_pool_started() -> None:
 
 
 def stop_worker_pool() -> None:
-    """Signal worker shutdown and clear in-memory queue bookkeeping."""
+    """发出工作线程关闭信号，并清理内存中的队列记录。"""
     global _WORKERS_STARTED
     with _QUEUE_LOCK:
         if not _WORKERS_STARTED:
@@ -222,7 +221,7 @@ def stop_worker_pool() -> None:
 
 
 def enqueue_job(job_id: str, recovered: bool = False) -> bool:
-    """Queue a job unless it is already queued or actively running."""
+    """除非任务已经在队列中或正在执行，否则把它加入队列。"""
     ensure_worker_pool_started()
     with _QUEUE_LOCK:
         if job_id in _QUEUED_JOB_IDS or job_id in _ACTIVE_JOB_IDS:
@@ -234,7 +233,7 @@ def enqueue_job(job_id: str, recovered: bool = False) -> bool:
 
 
 def requeue_incomplete_jobs() -> int:
-    """Re-enqueue recent unfinished jobs after process startup if recovery is enabled."""
+    """如果开启恢复机制，则在进程启动后把最近未完成任务重新入队。"""
     ensure_worker_pool_started()
     if not settings.recover_incomplete_jobs:
         return 0
@@ -259,9 +258,9 @@ def requeue_incomplete_jobs() -> int:
         db.close()
 
 
-# Worker execution helpers.
+# 工作线程执行辅助函数。
 def _worker_loop() -> None:
-    """Handle worker loop."""
+    """处理工作线程 loop。"""
     while not _SHUTDOWN_EVENT.is_set():
         try:
             _, _, job_id = _JOB_QUEUE.get(timeout=QUEUE_WAIT_TIMEOUT_SECONDS)
@@ -282,7 +281,7 @@ def _worker_loop() -> None:
 
 
 def run_job_with_retries(job_id: str) -> None:
-    """Wrap job execution in worker-level retries and final failure handling."""
+    """为任务执行包上一层工作线程级重试和最终失败处理。"""
     for attempt in range(1, WORKER_RETRIES + 1):
         try:
             run_job(job_id)
@@ -318,7 +317,7 @@ def run_job_with_retries(job_id: str) -> None:
 
 
 def _build_material_plan(source: FileRecord, target: dict, text: str, input_quality: dict, parsed_questions: list[dict]) -> dict:
-    """Choose the initial plan source for a job and normalize its metadata."""
+    """为任务选择初始规划来源，并规范化相关元数据。"""
     parsed_content = {"text": text[:20000], "questions": parsed_questions, "input_quality": input_quality}
     material_type_default = generate_external_name(source.original_name, target, text)["fields"]["material_type"]
     if source.file_type == "docx":
@@ -364,7 +363,7 @@ def _build_material_plan(source: FileRecord, target: dict, text: str, input_qual
         }
 
 
-# DOCX-specific finish path used by the word-first pipeline.
+# Word-first DOCX 链路专用的收尾处理。
 def _finish_word_first_docx(
     db: Session,
     job: MaterialJob,
@@ -374,7 +373,7 @@ def _finish_word_first_docx(
     text: str,
     material_spec: dict,
 ) -> None:
-    """Write DOCX-first artifacts, perform lightweight review, and park the job in human approval."""
+    """写出 DOCX-first 链路产物，做轻量审核，并把任务停在人工批准阶段。"""
     transition(db, job, JobStatus.RENDERING, "render_word_first_docx")
     ensure_not_cancelled(db, job)
     job.render_attempt += 1
@@ -495,9 +494,9 @@ def _finish_word_first_docx(
     db.commit()
 
 
-# Main workflow entrypoints.
+# 主工作流入口。
 def run_job(job_id: str) -> None:
-    """Execute the end-to-end workflow for one queued job."""
+    """执行单个排队任务的端到端工作流。"""
     db = SessionLocal()
     try:
         job = db.get(MaterialJob, job_id)
@@ -766,7 +765,7 @@ def run_job(job_id: str) -> None:
 
 
 def approve_job(db: Session, job: MaterialJob, reviewer_id: str, final_download_name: str | None = None) -> MaterialJob:
-    """Mark reviewed artifacts as downloadable and move the job to SUCCEEDED."""
+    """把审核通过的产物标记为可下载，并将任务状态推进到 SUCCEEDED。"""
     if job.owner_id != reviewer_id:
         raise ValueError("JOB_PERMISSION_DENIED")
     if job.status != JobStatus.HUMAN_REVIEW_REQUIRED:

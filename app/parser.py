@@ -1,5 +1,4 @@
-"""Basic text extraction, input qualification, and question parsing for DOCX and PDF sources."""
-
+"""面向 DOCX 和 PDF 源文件的基础文本抽取、输入评估和题目解析。"""
 from __future__ import annotations
 
 import re
@@ -10,7 +9,7 @@ from pypdf import PdfReader
 
 
 def extract_text(path: Path, file_type: str) -> tuple[str, dict]:
-    """Extract plain text and lightweight metadata from a supported source file."""
+    """从支持的源文件中提取纯文本和轻量元数据。"""
     if file_type == "docx":
         doc = Document(path)
         chunks = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
@@ -37,7 +36,7 @@ def extract_text(path: Path, file_type: str) -> tuple[str, dict]:
 
 
 def qualify_input(file_type: str, size_bytes: int, text: str, meta: dict) -> dict:
-    """Score whether a source looks safe for automatic processing or should wait for review."""
+    """评估源文件是否适合自动处理，还是应该先进入人工审核。"""
     chars = len(text.strip())
     page_count = meta.get("page_count") or 0
     empty_pages = meta.get("empty_pages") or 0
@@ -92,7 +91,7 @@ def qualify_input(file_type: str, size_bytes: int, text: str, meta: dict) -> dic
 
 
 def parse_questions(text: str) -> list[dict]:
-    """Split extracted text into coarse question blocks for downstream planning."""
+    """把抽取文本切成较粗粒度的题块，供后续规划使用。"""
     section_pattern = re.compile(r"^\s*([一二三四五六七八九十百]+[\.．、]\s*.+?（共\s*\d+\s*小题）)\s*$")
     question_pattern = re.compile(r"^\s*(\d+)[\.．、)]\s*")
     current_section = ""
@@ -102,7 +101,7 @@ def parse_questions(text: str) -> list[dict]:
     current_question_section = ""
 
     def flush_current() -> None:
-        """Handle flush current."""
+        """处理flush 当前。"""
         nonlocal current_number, current_lines, current_question_section
         if current_number is None:
             return

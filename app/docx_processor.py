@@ -1,5 +1,4 @@
-"""Word-first DOCX normalization pipeline for branding cleanup, mode resolution, and student/teacher formatting."""
-
+"""Word-first DOCX 规范化链路，负责清理来源痕迹、判定处理模式以及师生版排版。"""
 from __future__ import annotations
 
 import base64
@@ -181,10 +180,10 @@ HANDOUT_LABEL_TEMPLATE_ORDER = [
 ]
 
 
-# Public result objects shared with the rest of the workflow.
+# 供其他工作流模块复用的公开结果对象。
 @dataclass
 class ProcessedDocx:
-    """Bundle the processed DOCX path, preview HTML, and processing report."""
+    """封装处理后 DOCX 的路径、预览 HTML 和处理报告。"""
     output_path: Path
     preview_html: str
     report: dict
@@ -192,7 +191,7 @@ class ProcessedDocx:
 
 @dataclass
 class ModeResolution:
-    """Describe how a DOCX source was classified before formatting started."""
+    """描述 DOCX 在开始排版前是如何被判定处理模式的。"""
     requested_mode: str
     resolved_mode: str
     reason: str
@@ -202,10 +201,10 @@ class ModeResolution:
     paragraph_count: int
 
 
-# Mode resolution helpers: decide whether the input should stay teacher-facing,
-# become a student version, or pause for manual review.
+# 模式判定辅助逻辑：决定输入是保留教师版、转成学生版，
+# 还是先停下来等待人工处理。
 def _normalize_mode_name(mode: str | None, version: str) -> str:
-    """Normalize mode name."""
+    """规范化模式 名称。"""
     normalized = MODE_ALIAS.get((mode or "").strip(), "")
     if normalized:
         return normalized
@@ -215,30 +214,30 @@ def _normalize_mode_name(mode: str | None, version: str) -> str:
 
 
 def _normalize_subject(subject: str | None) -> str:
-    """Normalize subject."""
+    """规范化学科。"""
     if not subject:
         return ""
     return SUBJECT_ALIASES.get(str(subject).strip(), str(subject).strip().lower())
 
 
 def _count_chapter_heading_hits(paragraph_texts: list[str]) -> int:
-    """Count chapter heading hits."""
+    """统计章节 heading hits。"""
     return sum(1 for text in paragraph_texts[:160] if CHAPTER_HEADING_RE.search((text or "").strip()))
 
 
 def _count_knowledge_heading_hits(paragraph_texts: list[str]) -> int:
-    """Count knowledge heading hits."""
+    """统计knowledge heading hits。"""
     return sum(1 for text in paragraph_texts[:200] if KNOWLEDGE_HEADING_RE.search((text or "").strip()))
 
 
 def _display_subject(subject: str | None) -> str:
-    """Handle display subject."""
+    """处理显示 学科。"""
     normalized = _normalize_subject(subject)
     return SUBJECT_DISPLAY_NAMES.get(normalized, str(subject or "").strip() or "\u8d44\u6599")
 
 
 def _collect_trigger_hits(evidence_text: str) -> dict[str, list[str]]:
-    """Collect trigger hits."""
+    """收集触发词 hits。"""
     return {
         group: [token for token in tokens if token in evidence_text]
         for group, tokens in TRIGGER_GROUPS.items()
@@ -246,7 +245,7 @@ def _collect_trigger_hits(evidence_text: str) -> dict[str, list[str]]:
 
 
 def _merge_trigger_hits(*hit_maps: dict[str, list[str]]) -> dict[str, list[str]]:
-    """Merge trigger hits."""
+    """合并触发词 hits。"""
     merged: dict[str, list[str]] = {group: [] for group in TRIGGER_GROUPS}
     for hit_map in hit_maps:
         for group, tokens in hit_map.items():
@@ -257,7 +256,7 @@ def _merge_trigger_hits(*hit_maps: dict[str, list[str]]) -> dict[str, list[str]]
 
 
 def _find_tail_answer_marker_index(paragraph_texts: list[str]) -> int | None:
-    """Find tail answer marker index."""
+    """查找尾部 答案 marker index。"""
     for index, text in enumerate(paragraph_texts):
         stripped = text.strip()
         if stripped and any(marker in stripped for marker in ANSWER_SECTION_MARKERS):
@@ -266,20 +265,20 @@ def _find_tail_answer_marker_index(paragraph_texts: list[str]) -> int | None:
 
 
 def _has_tail_answer_section(paragraph_count: int, marker_index: int | None) -> bool:
-    """Return whether tail answer section."""
+    """判断是否尾部 答案 section。"""
     if marker_index is None or paragraph_count <= 0:
         return False
     return marker_index >= max(6, int(paragraph_count * 0.45))
 
 
 def _count_inline_answer_markers(paragraph_texts: list[str]) -> int:
-    """Count inline answer markers."""
+    """统计行内 答案 markers。"""
     inline_markers = INLINE_ANSWER_MARKERS + ["【点睛】"]
     return sum(1 for text in paragraph_texts if any(marker in text for marker in inline_markers))
 
 
 def _looks_like_inline_answer_start(text: str) -> bool:
-    """Return whether like inline answer start."""
+    """判断是否like 行内 答案 start。"""
     stripped = text.strip()
     if not stripped:
         return False
@@ -294,7 +293,7 @@ def resolve_docx_mode(
     extracted_text: str = "",
     paragraph_texts: list[str] | None = None,
 ) -> ModeResolution:
-    """Choose the DOCX processing mode from filename hints, extracted text, and paragraph evidence."""
+    """根据文件名线索、抽取文本和段落证据选择 DOCX 处理模式。"""
     version = target.get("version") or "student"
     subject = _normalize_subject(target.get("subject"))
     requested_mode = _normalize_mode_name(target.get("mode"), version)
@@ -452,14 +451,14 @@ def resolve_docx_mode(
     )
 
 
-# Low-level document cleanup helpers.
+# 底层文档清理辅助函数。
 def _has_drawing(paragraph: Paragraph) -> bool:
-    """Return whether drawing."""
+    """判断是否drawing。"""
     return bool(paragraph._p.xpath(".//w:drawing | .//w:pict"))
 
 
 def _delete_paragraph(paragraph: Paragraph) -> None:
-    """Delete paragraph."""
+    """删除段落。"""
     element = paragraph._element
     parent = element.getparent()
     if parent is not None:
@@ -467,7 +466,7 @@ def _delete_paragraph(paragraph: Paragraph) -> None:
 
 
 def _clean_brand_text(text: str) -> tuple[str, bool]:
-    """Handle clean brand text."""
+    """处理clean brand text。"""
     cleaned = text
     changed = False
     for pattern in BRAND_PATTERNS:
@@ -482,7 +481,7 @@ def _clean_brand_text(text: str) -> tuple[str, bool]:
 
 
 def _replace_paragraph_text(paragraph: Paragraph, text: str) -> None:
-    """Handle replace paragraph text."""
+    """处理replace 段落 text。"""
     for run in list(paragraph.runs):
         run.text = ""
     if text:
@@ -493,7 +492,7 @@ def _replace_paragraph_text(paragraph: Paragraph, text: str) -> None:
 
 
 def _clean_paragraph_branding(paragraph: Paragraph) -> bool:
-    """Handle clean paragraph branding."""
+    """处理clean 段落 品牌痕迹。"""
     original = paragraph.text
     cleaned, changed = _clean_brand_text(original)
     if not changed:
@@ -515,7 +514,7 @@ def _clean_paragraph_branding(paragraph: Paragraph) -> bool:
 
 
 def _iter_container_paragraphs(container) -> list[Paragraph]:
-    """Handle iter container paragraphs."""
+    """处理iter 容器 段落。"""
     paragraphs: list[Paragraph] = list(container.paragraphs)
     for table in container.tables:
         for row in table.rows:
@@ -525,7 +524,7 @@ def _iter_container_paragraphs(container) -> list[Paragraph]:
 
 
 def _clean_branding(doc: DocumentObject) -> int:
-    """Handle clean branding."""
+    """处理clean 品牌痕迹。"""
     cleaned = 0
     for paragraph in list(doc.paragraphs):
         if _clean_paragraph_branding(paragraph):
@@ -551,15 +550,15 @@ def _clean_branding(doc: DocumentObject) -> int:
     return cleaned
 
 
-# Header rebuild helpers.
+# 页眉重建辅助函数。
 def _run_has_drawing(run) -> bool:
-    """Run has drawing."""
+    """执行has drawing。"""
     xml = run._element.xml
     return any(token in xml for token in ("w:drawing", "w:pict", "v:shape"))
 
 
 def _strip_leading_intro_graphics(doc: DocumentObject) -> dict:
-    """Handle strip leading intro graphics."""
+    """处理strip leading intro graphics。"""
     removed_runs = 0
     affected_paragraphs: list[int] = []
     question_started = False
@@ -584,13 +583,13 @@ def _strip_leading_intro_graphics(doc: DocumentObject) -> dict:
 
 
 def _clear_header(header) -> None:
-    """Clear header."""
+    """清理页眉。"""
     for child in list(header._element):
         header._element.remove(child)
 
 
 def _load_header_font(size: int):
-    """Load header font."""
+    """加载页眉 font。"""
     try:
         from PIL import ImageFont
     except Exception:
@@ -610,7 +609,7 @@ def _load_header_font(size: int):
 
 
 def _set_paragraph_border_bottom(paragraph: Paragraph, color: str = "111111", size: str = "8") -> None:
-    """Set paragraph border bottom."""
+    """设置段落 border bottom。"""
     p_pr = paragraph._p.get_or_add_pPr()
     p_bdr = p_pr.find(qn("w:pBdr"))
     if p_bdr is None:
@@ -627,7 +626,7 @@ def _set_paragraph_border_bottom(paragraph: Paragraph, color: str = "111111", si
 
 
 def _set_cell_width(cell, width_twips: int) -> None:
-    """Set cell width."""
+    """设置cell width。"""
     cell.width = Inches(width_twips / 1440)
     tc_pr = cell._tc.get_or_add_tcPr()
     tc_w = tc_pr.find(qn("w:tcW"))
@@ -639,7 +638,7 @@ def _set_cell_width(cell, width_twips: int) -> None:
 
 
 def _set_cell_margins(cell, top: int = 0, right: int = 0, bottom: int = 0, left: int = 0) -> None:
-    """Set cell margins."""
+    """设置cell margins。"""
     tc_pr = cell._tc.get_or_add_tcPr()
     tc_mar = tc_pr.find(qn("w:tcMar"))
     if tc_mar is None:
@@ -655,7 +654,7 @@ def _set_cell_margins(cell, top: int = 0, right: int = 0, bottom: int = 0, left:
 
 
 def _set_table_width(table, width_twips: int) -> None:
-    """Set table width."""
+    """设置table width。"""
     tbl_pr = table._tbl.tblPr
     tbl_w = tbl_pr.find(qn("w:tblW"))
     if tbl_w is None:
@@ -666,7 +665,7 @@ def _set_table_width(table, width_twips: int) -> None:
 
 
 def _set_table_borders_none(table) -> None:
-    """Set table borders none."""
+    """设置table borders none。"""
     tbl_pr = table._tbl.tblPr
     tbl_borders = tbl_pr.find(qn("w:tblBorders"))
     if tbl_borders is None:
@@ -681,13 +680,13 @@ def _set_table_borders_none(table) -> None:
 
 
 def _header_strip_cache_path(subject_text: str) -> Path:
-    """Handle header strip cache path."""
+    """处理页眉 strip cache 路径。"""
     safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", _normalize_subject(subject_text or "material")).strip("_") or "material"
     return GENERATED_HEADER_DIR / f"header_strip_v4_{safe}.png"
 
 
 def _header_brand_asset_path(subject_text: str) -> Path | None:
-    """Handle header brand asset path."""
+    """处理页眉 brand asset 路径。"""
     normalized = _normalize_subject(subject_text or "material")
     candidates = [
         ASSET_DIR / f"header-brand-{normalized}.png",
@@ -702,7 +701,7 @@ def _header_brand_asset_path(subject_text: str) -> Path | None:
 
 
 def _trimmed_header_brand_asset_path(subject_text: str) -> Path | None:
-    """Handle trimmed header brand asset path."""
+    """处理trimmed 页眉 brand asset 路径。"""
     asset_path = _header_brand_asset_path(subject_text)
     if not asset_path or not asset_path.exists():
         return None
@@ -727,7 +726,7 @@ def _trimmed_header_brand_asset_path(subject_text: str) -> Path | None:
 
 
 def _static_header_strip_path(subject_text: str) -> Path | None:
-    """Handle static header strip path."""
+    """处理static 页眉 strip 路径。"""
     normalized = _normalize_subject(subject_text or "material")
     candidates = [
         GENERATED_HEADER_DIR / f"header_strip_{normalized}.png",
@@ -740,7 +739,7 @@ def _static_header_strip_path(subject_text: str) -> Path | None:
 
 
 def _build_header_strip_image(subject_text: str) -> Path | None:
-    """Build header strip image."""
+    """构建页眉 strip image。"""
     cache_path = _header_strip_cache_path(subject_text)
     if cache_path.exists():
         return cache_path
@@ -829,7 +828,7 @@ def _build_header_strip_image(subject_text: str) -> Path | None:
 
 
 def _populate_header(header, title: str, subject_text: str = "") -> None:
-    """Populate header."""
+    """填充页眉。"""
     _clear_header(header)
     subject_key = subject_text or "\u8d44\u6599"
     brand_asset = _trimmed_header_brand_asset_path(subject_key)
@@ -896,7 +895,7 @@ def _populate_header(header, title: str, subject_text: str = "") -> None:
 
 
 def _add_header_branding(doc: DocumentObject, title: str, subject_text: str = "") -> None:
-    """Add header branding."""
+    """添加页眉 品牌痕迹。"""
     if hasattr(doc, "settings") and hasattr(doc.settings, "odd_and_even_pages_header_footer"):
         doc.settings.odd_and_even_pages_header_footer = True
     for section in doc.sections:
@@ -914,9 +913,9 @@ def _add_header_branding(doc: DocumentObject, title: str, subject_text: str = ""
             _populate_header(part, title, subject_text=subject_text)
 
 
-# Chapter-handout helpers.
+# 章节讲义标签辅助函数。
 def _set_paragraph_shading(paragraph: Paragraph, fill: str) -> None:
-    """Set paragraph shading."""
+    """设置段落 shading。"""
     p_pr = paragraph._p.get_or_add_pPr()
     shd = p_pr.find(qn("w:shd"))
     if shd is None:
@@ -928,7 +927,7 @@ def _set_paragraph_shading(paragraph: Paragraph, fill: str) -> None:
 
 
 def _set_paragraph_border_box(paragraph: Paragraph, color: str = "1d4dff", size: str = "16") -> None:
-    """Set paragraph border box."""
+    """设置段落 border box。"""
     p_pr = paragraph._p.get_or_add_pPr()
     p_bdr = p_pr.find(qn("w:pBdr"))
     if p_bdr is None:
@@ -946,7 +945,7 @@ def _set_paragraph_border_box(paragraph: Paragraph, color: str = "1d4dff", size:
 
 
 def _looks_like_content_heading(text: str) -> bool:
-    """Return whether like content heading."""
+    """判断是否like content heading。"""
     stripped = text.strip()
     if not stripped:
         return False
@@ -966,7 +965,7 @@ def _looks_like_content_heading(text: str) -> bool:
 
 
 def _classify_handout_label(text: str) -> str | None:
-    """Classify handout label."""
+    """判定讲义 label。"""
     stripped = text.strip()
     if QUESTION_RE.match(stripped):
         return None
@@ -981,7 +980,7 @@ def _classify_handout_label(text: str) -> str | None:
 
 
 def _strip_leading_cover_for_chapter_handout(doc: DocumentObject) -> dict:
-    """Handle strip leading cover for chapter handout."""
+    """处理strip leading cover for 章节 讲义。"""
     paragraphs = list(doc.paragraphs)
     first_chapter_index: int | None = None
     for index, paragraph in enumerate(paragraphs):
@@ -1003,7 +1002,7 @@ def _strip_leading_cover_for_chapter_handout(doc: DocumentObject) -> dict:
 
 
 def _remove_blank_page_break_paragraphs(doc: DocumentObject) -> int:
-    """Remove blank page break paragraphs."""
+    """移除留白 page break 段落。"""
     removed = 0
     for paragraph in list(doc.paragraphs):
         if paragraph.text.strip():
@@ -1017,7 +1016,7 @@ def _remove_blank_page_break_paragraphs(doc: DocumentObject) -> int:
 
 
 def _extract_handout_label_templates(doc: DocumentObject) -> dict[str, object]:
-    """Extract handout label templates."""
+    """提取讲义 label templates。"""
     templates: dict[str, object] = {}
     drawing_only_paragraphs = [
         paragraph
@@ -1036,7 +1035,7 @@ def _insert_handout_label_before(
     *,
     allow_fallback: bool = True,
 ) -> bool:
-    """Handle insert handout label before."""
+    """处理insert 讲义 label before。"""
     if templates and label in templates:
         paragraph._p.addprevious(deepcopy(templates[label]))
         return True
@@ -1063,7 +1062,7 @@ def _add_functional_handout_labels(
     *,
     allow_fallback: bool = True,
 ) -> list[dict]:
-    """Add functional handout labels."""
+    """添加functional 讲义 labels。"""
     inserted: list[dict] = []
     last_label: str | None = None
     for paragraph in list(doc.paragraphs):
@@ -1092,9 +1091,9 @@ def _add_functional_handout_labels(
     return inserted
 
 
-# Teacher/student content transformation helpers.
+# 教师版与学生版内容转换辅助函数。
 def _strip_student_answer_section(doc: DocumentObject) -> bool:
-    """Handle strip student answer section."""
+    """处理strip 学生版 答案 section。"""
     paragraphs = list(doc.paragraphs)
     first_title = next((p.text.strip() for p in paragraphs if p.text.strip()), "")
     marker_index: int | None = None
@@ -1126,7 +1125,7 @@ def _strip_student_answer_section(doc: DocumentObject) -> bool:
 
 
 def _strip_inline_answer_blocks(doc: DocumentObject) -> dict:
-    """Handle strip inline answer blocks."""
+    """处理strip 行内 答案 blocks。"""
     paragraphs_to_remove: list[Paragraph] = []
     affected_questions: list[int] = []
 
@@ -1160,21 +1159,21 @@ def _strip_inline_answer_blocks(doc: DocumentObject) -> dict:
 
 
 def _insert_paragraph_after(paragraph: Paragraph) -> Paragraph:
-    """Handle insert paragraph after."""
+    """处理insert 段落 after。"""
     new_p = OxmlElement("w:p")
     paragraph._p.addnext(new_p)
     return Paragraph(new_p, paragraph._parent)
 
 
 def _insert_paragraph_before(paragraph: Paragraph) -> Paragraph:
-    """Handle insert paragraph before."""
+    """处理insert 段落 before。"""
     new_p = OxmlElement("w:p")
     paragraph._p.addprevious(new_p)
     return Paragraph(new_p, paragraph._parent)
 
 
 def _color_all_runs_red(paragraph: Paragraph) -> int:
-    """Handle color all runs red."""
+    """处理着色 all runs red。"""
     colored = 0
     for run in paragraph.runs:
         if not run.text:
@@ -1185,7 +1184,7 @@ def _color_all_runs_red(paragraph: Paragraph) -> int:
 
 
 def _color_runs_from_marker(paragraph: Paragraph, markers: list[str]) -> int:
-    """Handle color runs from marker."""
+    """处理着色 runs from marker。"""
     full_text = "".join(run.text for run in paragraph.runs)
     if not full_text:
         return 0
@@ -1206,7 +1205,7 @@ def _color_runs_from_marker(paragraph: Paragraph, markers: list[str]) -> int:
 
 
 def _color_teacher_answer_content(doc: DocumentObject) -> dict:
-    """Handle color teacher answer content."""
+    """处理着色 教师版 答案 content。"""
     paragraphs = list(doc.paragraphs)
     if not paragraphs:
         return {"colored_paragraph_count": 0, "colored_run_count": 0}
@@ -1215,7 +1214,7 @@ def _color_teacher_answer_content(doc: DocumentObject) -> dict:
     colored_run_count = 0
 
     def color_paragraph(paragraph: Paragraph, *, from_marker: bool = False) -> None:
-        """Handle color paragraph."""
+        """处理着色 段落。"""
         nonlocal colored_run_count
         para_id = id(paragraph._p)
         if para_id in colored_paragraph_ids:
@@ -1244,7 +1243,7 @@ def _color_teacher_answer_content(doc: DocumentObject) -> dict:
                     break
                 color_paragraph(paragraph)
 
-    # Fall back for standalone explanation paragraphs outside detected question blocks.
+    # 兜底处理：对未落入题块的独立解析段落也尝试做教师版标红。
     for index, paragraph in enumerate(paragraphs):
         if tail_marker_index is not None and index < tail_marker_index:
             continue
@@ -1260,9 +1259,9 @@ def _color_teacher_answer_content(doc: DocumentObject) -> dict:
     }
 
 
-# Student spacing and pagination helpers.
+# 学生版留白和分页辅助函数。
 def _has_existing_answer_space(paragraph: Paragraph, question_number: int) -> bool:
-    """Return whether existing answer space."""
+    """判断是否existing 答案 space。"""
     node = paragraph._p
     for _ in range(12):
         node = node.getnext()
@@ -1277,7 +1276,7 @@ def _has_existing_answer_space(paragraph: Paragraph, question_number: int) -> bo
 
 
 def _estimate_answer_lines(block_text: str) -> int:
-    """Estimate answer lines."""
+    """估算答案 行。"""
     score_match = SCORE_RE.search(block_text)
     score = int(score_match.group(1)) if score_match else 0
     proof_like = bool(re.search("\u8bc1\u660e|\u8bf4\u660e\u7406\u7531|\u6c42\u8bc1|\u5c3a\u89c4\u4f5c\u56fe|\u753b\u6811\u72b6\u56fe|\u5217\u8868", block_text))
@@ -1291,7 +1290,7 @@ def _estimate_answer_lines(block_text: str) -> int:
 
 
 def _is_subjective_question(section_subjective: bool, number: int, block_text: str) -> bool:
-    """Return whether subjective question."""
+    """判断是否subjective 题目。"""
     if not block_text.strip():
         return False
     if section_subjective:
@@ -1308,7 +1307,7 @@ def _is_subjective_question(section_subjective: bool, number: int, block_text: s
 
 
 def _insert_answer_lines(doc: DocumentObject, anchor: Paragraph, question_number: int, line_count: int) -> None:
-    """Handle insert answer lines."""
+    """处理insert 答案 行。"""
     previous = anchor
     for index in range(line_count):
         paragraph = _insert_paragraph_after(previous)
@@ -1325,7 +1324,7 @@ def _insert_answer_lines(doc: DocumentObject, anchor: Paragraph, question_number
 
 
 def _question_blocks(doc: DocumentObject) -> list[dict]:
-    """Handle question blocks."""
+    """处理题目 blocks。"""
     paragraphs = list(doc.paragraphs)
     blocks: list[dict] = []
     section_subjective = False
@@ -1369,12 +1368,12 @@ def _question_blocks(doc: DocumentObject) -> list[dict]:
 
 
 def _is_blank_paragraph(paragraph: Paragraph) -> bool:
-    """Return whether blank paragraph."""
+    """判断是否留白 段落。"""
     return not paragraph.text.strip() and not _has_drawing(paragraph)
 
 
 def _is_section_heading(text: str) -> bool:
-    """Return whether section heading."""
+    """判断是否section heading。"""
     return bool(
         SECTION_HEADING_RE.search(text)
         or SUBJECTIVE_SECTION_RE.search(text)
@@ -1383,7 +1382,7 @@ def _is_section_heading(text: str) -> bool:
 
 
 def _add_fill_in_spacing(doc: DocumentObject) -> int:
-    """Add fill in spacing."""
+    """添加fill in spacing。"""
     inserted = 0
     paragraphs = list(doc.paragraphs)
     for index, paragraph in enumerate(paragraphs):
@@ -1422,12 +1421,12 @@ def _add_fill_in_spacing(doc: DocumentObject) -> int:
 
 
 def _count_drawings(paragraph: Paragraph) -> int:
-    """Count drawings."""
+    """统计drawings。"""
     return len(paragraph._p.xpath(".//w:drawing | .//w:pict"))
 
 
 def _estimate_paragraph_units(paragraph: Paragraph) -> float:
-    """Estimate paragraph units."""
+    """估算段落 units。"""
     text = " ".join(paragraph.text.split())
     if not text:
         return 6.0 if _has_drawing(paragraph) else 0.35
@@ -1446,7 +1445,7 @@ def _estimate_paragraph_units(paragraph: Paragraph) -> float:
 
 
 def _estimate_block_units(block: dict) -> float:
-    """Estimate block units."""
+    """估算block units。"""
     units = sum(_estimate_paragraph_units(paragraph) for paragraph in block["paragraphs"])
     if _is_subjective_question(block["section_subjective"], block["number"], block["text"]):
         units += 0.8 + (_estimate_answer_lines(block["text"]) * 0.95)
@@ -1454,7 +1453,7 @@ def _estimate_block_units(block: dict) -> float:
 
 
 def _block_has_visual_density(block: dict) -> bool:
-    """Handle block has visual density."""
+    """处理block has 视觉 density。"""
     drawing_count = sum(_count_drawings(paragraph) for paragraph in block["paragraphs"])
     return drawing_count >= 2 or any(_has_drawing(paragraph) and len(paragraph.text.strip()) > 28 for paragraph in block["paragraphs"])
 
@@ -1466,7 +1465,7 @@ def _set_paragraph_pagination(
     keep_with_next: bool | None = None,
     page_break_before: bool | None = None,
 ) -> None:
-    """Set paragraph pagination."""
+    """设置段落 pagination。"""
     if keep_together is not None:
         paragraph.paragraph_format.keep_together = keep_together
     if keep_with_next is not None:
@@ -1476,7 +1475,7 @@ def _set_paragraph_pagination(
 
 
 def _normalize_page_units(units: float) -> float:
-    """Normalize page units."""
+    """规范化page units。"""
     if units <= 0:
         return 0.0
     if units < STUDENT_PAGE_CAPACITY:
@@ -1488,7 +1487,7 @@ def _normalize_page_units(units: float) -> float:
 
 
 def _apply_student_pagination(doc: DocumentObject) -> dict:
-    """Handle apply student pagination."""
+    """处理apply 学生版 pagination。"""
     paragraphs = list(doc.paragraphs)
     blocks = _question_blocks(doc)
     page_units = 0.0
@@ -1556,7 +1555,7 @@ def _apply_student_pagination(doc: DocumentObject) -> dict:
 
 
 def _add_student_answer_spaces(doc: DocumentObject) -> list[dict]:
-    """Add student answer spaces."""
+    """添加学生版 答案 spaces。"""
     inserted: list[dict] = []
     blocks = _question_blocks(doc)
     for index, block in enumerate(blocks):
@@ -1581,7 +1580,7 @@ def _add_student_answer_spaces(doc: DocumentObject) -> list[dict]:
 
 
 def _logo_data_url() -> str:
-    """Handle logo data url."""
+    """处理logo data url。"""
     if not LOGO_PATH.exists():
         return ""
     data = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
@@ -1589,7 +1588,7 @@ def _logo_data_url() -> str:
 
 
 def _build_preview_html(title: str, doc: DocumentObject, report: dict) -> str:
-    """Build preview html."""
+    """构建预览 HTML。"""
     logo = _logo_data_url()
     paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
     visible = paragraphs[:220]
@@ -1656,14 +1655,14 @@ def _build_preview_html(title: str, doc: DocumentObject, report: dict) -> str:
 
 
 def _output_path(source_path: Path, job_id: str, version: str) -> Path:
-    """Build the processed DOCX output path for one source, job, and target version."""
+    """构建the processed DOCX 输出 路径 for one source, 任务, and 目标 版本。"""
     safe_stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", source_path.stem).strip("_") or source_path.stem
     return PROCESSED_DIR / f"{safe_stem}_{job_id}_{version}.docx"
 
 
-# Final entrypoint used by workflow.py for word-first DOCX handling.
+# workflow.py 调用的 Word-first DOCX 总入口。
 def process_docx_source(source_path: Path, job_id: str, target: dict, extracted_text: str = "") -> ProcessedDocx:
-    """Run the full Word-first DOCX cleanup and formatting pipeline for one source file."""
+    """对单个源文件执行完整的 Word-first DOCX 清理与排版流程。"""
     version = target.get("version") or "student"
     title = target.get("title") or source_path.stem
     subject_text = _display_subject(target.get("subject"))

@@ -1,5 +1,4 @@
-"""Visual review helpers for fidelity renders and student blank-page planning."""
-
+"""面向保真渲染和学生留白页规划的视觉检查辅助函数。"""
 from __future__ import annotations
 
 import base64
@@ -36,12 +35,12 @@ BRAND_PATTERNS = [
 
 
 def _normalize_text(text: str) -> str:
-    """Normalize text."""
+    """规范化text。"""
     return re.sub(r"\s+", " ", text or "").strip()
 
 
 def _estimate_blank_lines(text: str) -> int:
-    """Estimate blank lines."""
+    """估算留白 行。"""
     sub_parts = len(re.findall(r"[（(]\d+[)）]", text))
     small_parts = len(re.findall(r"\n?\d+[\.．、]", text))
     proof_bonus = 2 if re.search(r"证明|说明理由|写出过程", text) else 0
@@ -60,7 +59,7 @@ def _estimate_blank_lines(text: str) -> int:
 
 
 def _classify_subjective_page(text: str) -> tuple[bool, str, int]:
-    """Classify subjective page."""
+    """判定subjective page。"""
     normalized = _normalize_text(text)
     if not normalized:
         return False, "", 0
@@ -91,7 +90,7 @@ def _classify_subjective_page(text: str) -> tuple[bool, str, int]:
 
 
 def build_student_blank_plan(pdf_path: Path) -> dict:
-    """Inspect PDF pages and plan where extra student answer sheets should be inserted."""
+    """检查 PDF 页面，并规划学生额外答题留白页该插在什么位置。"""
     reader = PdfReader(str(pdf_path))
     pages = []
     for index, page in enumerate(reader.pages):
@@ -113,7 +112,7 @@ def build_student_blank_plan(pdf_path: Path) -> dict:
 
 
 def _extract_page_images(html: str) -> list[Image.Image]:
-    """Extract page images."""
+    """提取page images。"""
     images = []
     for match in re.finditer(r"data:image/jpeg;base64,([A-Za-z0-9+/=]+)", html):
         raw = base64.b64decode(match.group(1))
@@ -122,7 +121,7 @@ def _extract_page_images(html: str) -> list[Image.Image]:
 
 
 def _top_band_dark_ratio(image: Image.Image) -> float:
-    """Handle top band dark ratio."""
+    """处理top band dark ratio。"""
     width, height = image.size
     top_band = image.crop((0, 0, width, max(48, int(height * 0.09))))
     dark = 0
@@ -134,7 +133,7 @@ def _top_band_dark_ratio(image: Image.Image) -> float:
 
 
 def review_fidelity_html_visual(html: str, material_spec: dict) -> dict:
-    """Check fidelity HTML for leftover source branding and missing blank pages."""
+    """检查保真 HTML 中是否残留来源品牌痕迹，以及是否缺少留白页。"""
     issues = []
     lower_html = html.lower()
 

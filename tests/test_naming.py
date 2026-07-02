@@ -1,10 +1,9 @@
-"""Focused tests for delivery filename generation."""
-
+"""聚焦交付文件名生成逻辑的测试。"""
 from app.naming import generate_external_name
 
 
 def test_generate_external_name_from_original_name():
-    """Verify generate external name from original name."""
+    """验证generate 外部 名称 from original 名称。"""
     result = generate_external_name(
         "九年级期末真题必刷常考60题（学生版）.pdf",
         {"subject": "数学", "version": "student"},

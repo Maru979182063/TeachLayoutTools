@@ -1,5 +1,4 @@
-"""DOCX-to-PDF conversion helpers with Word COM as the primary path and a renderer fallback."""
-
+"""DOCX 转 PDF 辅助函数，优先走 Word COM，失败时回退到渲染器。"""
 from __future__ import annotations
 
 import os
@@ -24,7 +23,7 @@ WORD_CONVERSION_SEMAPHORE = threading.Semaphore(settings.word_max_concurrency)
 
 
 def _write_placeholder_pdf(output_path: Path) -> Path:
-    """Write placeholder pdf."""
+    """写出占位 PDF。"""
     writer = PdfWriter()
     writer.add_blank_page(width=612, height=792)
     with output_path.open("wb") as handle:
@@ -33,7 +32,7 @@ def _write_placeholder_pdf(output_path: Path) -> Path:
 
 
 def _timeout_seconds(name: str, default: int) -> int:
-    """Handle timeout seconds."""
+    """处理超时 seconds。"""
     raw = os.environ.get(name, "").strip()
     if not raw:
         return default
@@ -45,7 +44,7 @@ def _timeout_seconds(name: str, default: int) -> int:
 
 
 def _build_power_shell_script(input_path: str, output_path: str) -> str:
-    """Build power shell script."""
+    """构建PowerShell script。"""
     safe_input = input_path.replace("'", "''")
     safe_output = output_path.replace("'", "''")
     return (
@@ -70,7 +69,7 @@ def _build_power_shell_script(input_path: str, output_path: str) -> str:
 
 
 def _convert_via_word_com(docx_path: Path, output_path: Path) -> str | None:
-    """Handle convert via word com."""
+    """处理convert via Word COM。"""
     script = _build_power_shell_script(str(docx_path), str(output_path))
     try:
         completed = subprocess.run(
@@ -88,7 +87,7 @@ def _convert_via_word_com(docx_path: Path, output_path: Path) -> str | None:
 
 
 def _kill_word_processes() -> None:
-    """Handle kill word processes."""
+    """处理kill word processes。"""
     subprocess.run(
         ["taskkill", "/F", "/IM", "WINWORD.EXE"],
         check=False,
@@ -98,7 +97,7 @@ def _kill_word_processes() -> None:
 
 
 def _convert_via_renderer(docx_path: Path, output_path: Path) -> str | None:
-    """Handle convert via renderer."""
+    """处理convert via 渲染器。"""
     if not RENDER_DOCX_SCRIPT.exists():
         return "render_docx.py missing"
 
@@ -130,7 +129,7 @@ def _convert_via_renderer(docx_path: Path, output_path: Path) -> str | None:
 
 
 def convert_docx_to_pdf(docx_path: Path, job_id: str | None = None) -> Path:
-    """Convert a generated DOCX artifact to PDF using Word first and a renderer fallback second."""
+    """把生成后的 DOCX 产物转成 PDF，优先走 Word，失败后再走回退渲染器。"""
     docx_path = docx_path.expanduser().resolve()
     if not docx_path.exists():
         raise FileNotFoundError(f"docx not found: {docx_path}")

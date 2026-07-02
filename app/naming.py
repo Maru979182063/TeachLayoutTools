@@ -1,5 +1,4 @@
-"""Human-readable naming helpers that turn file hints and extracted text into delivery filenames."""
-
+"""把文件线索和抽取文本整理成对人友好的交付文件名的辅助函数。"""
 from __future__ import annotations
 
 import re
@@ -90,7 +89,7 @@ EXAM_BODY_RE = re.compile(r"本试卷共|注意事项|考试结束后|答题卡|
 
 
 def clean_name_part(value: str | None) -> str | None:
-    """Handle clean name part."""
+    """处理clean 名称 part。"""
     if value is None:
         return None
     cleaned = safe_filename(str(value)).strip()
@@ -98,7 +97,7 @@ def clean_name_part(value: str | None) -> str | None:
 
 
 def infer_field(candidates: list[str], text: str) -> str | None:
-    """Infer field."""
+    """推断field。"""
     for item in candidates:
         if item and item in text:
             return item
@@ -106,7 +105,7 @@ def infer_field(candidates: list[str], text: str) -> str | None:
 
 
 def infer_term(text: str) -> str | None:
-    """Infer term."""
+    """推断学期。"""
     if "上学期" in text or "上册" in text:
         return "上学期"
     if "下学期" in text or "下册" in text:
@@ -123,7 +122,7 @@ def infer_term(text: str) -> str | None:
 
 
 def normalize_grade(value: str | None) -> str | None:
-    """Normalize grade."""
+    """规范化年级。"""
     if not value:
         return None
     match = re.search(r"(\d+年级|[一二三四五六七八九]年级|初[一二三]|高[一二三]|高中|初中)", value)
@@ -131,12 +130,12 @@ def normalize_grade(value: str | None) -> str | None:
 
 
 def _normalize_text(*parts: str) -> str:
-    """Normalize text."""
+    """规范化text。"""
     return re.sub(r"\s+", " ", " ".join(part for part in parts if part)).strip()
 
 
 def _display_subject(subject: str | None, evidence: str) -> str | None:
-    """Handle display subject."""
+    """处理显示 学科。"""
     if subject:
         return SUBJECT_DISPLAY.get(str(subject).strip(), str(subject).strip())
     inferred = infer_field(SUBJECT_PATTERNS, evidence)
@@ -146,7 +145,7 @@ def _display_subject(subject: str | None, evidence: str) -> str | None:
 
 
 def _infer_stage(evidence: str, grade: str | None) -> str | None:
-    """Infer stage."""
+    """推断stage。"""
     if grade in {"高一", "高二", "高三", "高中"}:
         return "高中"
     if grade in {"初一", "初二", "初三", "初中"}:
@@ -159,14 +158,14 @@ def _infer_stage(evidence: str, grade: str | None) -> str | None:
 
 
 def _strip_version_suffix(base_name: str) -> str:
-    """Handle strip version suffix."""
+    """处理strip 版本 suffix。"""
     cleaned = VERSION_STRIP_RE.sub("", base_name)
     cleaned = VERSION_TAIL_RE.sub("", cleaned)
     return cleaned.strip(" _-·")
 
 
 def _strip_source_noise(base_name: str) -> str:
-    """Handle strip source noise."""
+    """处理strip source noise。"""
     cleaned = LEADING_NOISE_RE.sub("", base_name.strip())
     cleaned = cleaned.replace("（网络 收集版）", "")
     cleaned = cleaned.replace("(网络 收集版)", "")
@@ -178,7 +177,7 @@ def _strip_source_noise(base_name: str) -> str:
 
 
 def _normalize_material_title(title: str) -> str:
-    """Normalize material title."""
+    """规范化material title。"""
     cleaned = _strip_source_noise(_strip_version_suffix(title))
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     swap_match = re.match(r"^(?P<prefix>高考考前必记易错要点.*?)(?P<suffix>20\d{2}年高考.*?讲练测)$", cleaned)
@@ -188,7 +187,7 @@ def _normalize_material_title(title: str) -> str:
 
 
 def infer_material_category(target: dict[str, Any], evidence: str, ext: str) -> str:
-    """Infer material category."""
+    """推断material category。"""
     explicit = clean_name_part(target.get("material_category"))
     if explicit:
         return explicit
@@ -221,7 +220,7 @@ def infer_material_category(target: dict[str, Any], evidence: str, ext: str) -> 
 
 
 def _infer_version_label(target: dict[str, Any], category: str, title: str, evidence: str) -> str | None:
-    """Infer version label."""
+    """推断版本 label。"""
     mode = str(target.get("resolved_mode") or target.get("mode") or "")
     requested_version = str(target.get("version") or "")
     text = _normalize_text(title, evidence)
@@ -249,7 +248,7 @@ def _infer_version_label(target: dict[str, Any], category: str, title: str, evid
 
 
 def _inject_subject_prefix(title: str, subject_display: str | None, grade: str | None, stage: str | None, category: str) -> str:
-    """Handle inject subject prefix."""
+    """处理inject 学科 prefix。"""
     if not subject_display or subject_display in title:
         return title
     if category != "知识类":
@@ -261,7 +260,7 @@ def _inject_subject_prefix(title: str, subject_display: str | None, grade: str |
 
 
 def infer_material_type(original_name: str, text: str, ext: str) -> str:
-    """Infer material type."""
+    """推断material type。"""
     title = _normalize_material_title(Path(original_name).stem)
     if title:
         return title
@@ -282,7 +281,7 @@ def generate_external_name(
     extracted_text: str = "",
     artifact_ext: str | None = None,
 ) -> dict[str, Any]:
-    """Handle generate external name."""
+    """处理generate 外部 名称。"""
     ext = artifact_ext or Path(original_name).suffix.lower() or ".html"
     title_hint = clean_name_part(target.get("material_title") or target.get("title")) or Path(original_name).stem
     evidence = _normalize_text(

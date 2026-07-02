@@ -1,5 +1,4 @@
-"""Database models and shared workflow enums for files, jobs, artifacts, and notifications."""
-
+"""文件、任务、产物、通知相关的数据库模型和共享状态枚举。"""
 from __future__ import annotations
 
 import enum
@@ -12,12 +11,12 @@ from .database import Base
 
 
 def utcnow() -> datetime:
-    """Return the current UTC timestamp used by model defaults."""
+    """返回模型默认字段使用的当前 UTC 时间。"""
     return datetime.now(timezone.utc)
 
 
 class JobStatus(str, enum.Enum):
-    """Workflow states a material job can move through."""
+    """材料任务可能经历的工作流状态。"""
     CREATED = "CREATED"
     UPLOADED = "UPLOADED"
     QUEUED = "QUEUED"
@@ -47,7 +46,7 @@ TERMINAL_STATUSES = {
 
 
 class FileRecord(Base):
-    """Uploaded source file metadata stored before jobs are created."""
+    """任务创建前保存的上传源文件元数据。"""
     __tablename__ = "files"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -68,7 +67,7 @@ class FileRecord(Base):
 
 
 class MaterialJob(Base):
-    """Top-level workflow record for one material-generation request."""
+    """单个材料生成请求对应的顶层工作流记录。"""
     __tablename__ = "material_jobs"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -99,7 +98,7 @@ class MaterialJob(Base):
 
 
 class JobFile(Base):
-    """Join table linking uploaded files to a job with a role label."""
+    """把上传文件和任务按角色关联起来的中间表。"""
     __tablename__ = "job_files"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -113,7 +112,7 @@ class JobFile(Base):
 
 
 class Artifact(Base):
-    """Generated or intermediate file emitted during workflow execution."""
+    """工作流执行过程中产生的中间文件或最终产物。"""
     __tablename__ = "artifacts"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -142,7 +141,7 @@ class Artifact(Base):
 
 
 class JobEvent(Base):
-    """User-visible event log entry for workflow progress and failures."""
+    """记录进度和失败信息的用户可见事件日志。"""
     __tablename__ = "job_events"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -160,7 +159,7 @@ class JobEvent(Base):
 
 
 class NotificationEvent(Base):
-    """Notification delivery record used to deduplicate status pushes."""
+    """用于状态通知去重的通知投递记录。"""
     __tablename__ = "notification_events"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)

@@ -1,5 +1,4 @@
-"""API smoke tests for upload, job creation, review, and artifact download behavior."""
-
+"""覆盖上传、建任务、审核和产物下载行为的 API 冒烟测试。"""
 from __future__ import annotations
 
 import io
@@ -12,7 +11,7 @@ from app.main import app
 
 
 def make_docx() -> bytes:
-    """Handle make docx."""
+    """处理make DOCX。"""
     doc = Document()
     doc.add_paragraph("九年级数学上学期期末真题必刷常考60题 人教版")
     for index in range(1, 8):
@@ -23,7 +22,7 @@ def make_docx() -> bytes:
 
 
 def wait_terminal(client: TestClient, job_id: str) -> dict:
-    """Handle wait terminal."""
+    """处理wait 终态。"""
     for _ in range(80):
         detail = client.get(f"/api/material-jobs/{job_id}", headers={"X-User-Id": "tester"}).json()
         if detail["status"] in {"HUMAN_REVIEW_REQUIRED", "FAILED", "SUCCEEDED", "CANCELLED"}:
@@ -33,7 +32,7 @@ def wait_terminal(client: TestClient, job_id: str) -> dict:
 
 
 def test_job_requires_human_review_before_download():
-    """Verify job requires human review before download."""
+    """验证任务 requires human review before download。"""
     client = TestClient(app)
     upload = client.post(
         "/api/files",

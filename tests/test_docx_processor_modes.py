@@ -1,12 +1,11 @@
-"""Regression tests for DOCX mode resolution and answer-stripping behavior."""
-
+"""覆盖 DOCX 模式判定和答案剥离行为的回归测试。"""
 from docx import Document
 
 from app.docx_processor import _is_subjective_question, _question_blocks, process_docx_source, resolve_docx_mode
 
 
 def test_resolve_student_refine_for_original_paper():
-    """Verify resolve student refine for original paper."""
+    """验证resolve 学生版 refine for original paper。"""
     resolution = resolve_docx_mode(
         "2026年高考江西卷化学高考真题（原卷版）",
         {"version": "student"},
@@ -18,7 +17,7 @@ def test_resolve_student_refine_for_original_paper():
 
 
 def test_resolve_teacher_to_student_tail_mode():
-    """Verify resolve teacher to student tail mode."""
+    """验证resolve 教师版 to 学生版 尾部 模式。"""
     resolution = resolve_docx_mode(
         "2026年高考贵州卷化学高考真题（解析版）",
         {"version": "student", "mode": "teacher_to_student_trial"},
@@ -40,7 +39,7 @@ def test_resolve_teacher_to_student_tail_mode():
 
 
 def test_resolve_inline_parse_to_hold_mode():
-    """Verify resolve inline parse to hold mode."""
+    """验证resolve 行内 parse to hold 模式。"""
     resolution = resolve_docx_mode(
         "精品解析：北京市清华大学附属中学高一下学期期中物理试题（解析版）",
         {"version": "student", "mode": "teacher_to_student_trial"},
@@ -64,7 +63,7 @@ def test_resolve_inline_parse_to_hold_mode():
 
 
 def test_resolve_notes_keep_for_handout_like_material():
-    """Verify resolve notes keep for handout like material."""
+    """验证resolve notes keep for 讲义 like material。"""
     resolution = resolve_docx_mode(
         "高考考前必记易错要点（109大易错）2026年高考生物二轮复习讲练测",
         {"version": "student", "mode": "teacher_to_student_trial"},
@@ -77,7 +76,7 @@ def test_resolve_notes_keep_for_handout_like_material():
 
 
 def test_process_docx_source_strips_inline_answer_blocks(tmp_path):
-    """Verify process docx source strips inline answer blocks."""
+    """验证process DOCX source strips 行内 答案 blocks。"""
     source = tmp_path / "inline.docx"
     doc = Document()
     doc.add_paragraph("一、选择题")
@@ -108,7 +107,7 @@ def test_process_docx_source_strips_inline_answer_blocks(tmp_path):
 
 
 def test_science_non_choice_section_is_subjective():
-    """Verify science non choice section is subjective."""
+    """验证science non choice section is subjective。"""
     doc = Document()
     doc.add_paragraph("二、非选择题：本题共4小题，共58分。")
     doc.add_paragraph("15. 双氯磺酰亚胺是关键中间体。")

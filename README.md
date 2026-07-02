@@ -88,18 +88,18 @@ Without `DOUBAO_API_KEY`, the workflow automatically falls back to the determini
 
 Use `X-User-Id` for user isolation. In shared deployment, also enable `APP_REQUIRE_ACCESS_KEY` and send `X-Access-Key` with each request.
 
-## Code layout
+## 代码结构
 
-- `app/main.py`: FastAPI API layer. Handles upload, auth, job CRUD, artifact preview/download, and hands background work off to `workflow.py`.
-- `app/workflow.py`: Background queue and worker orchestration. Owns status transitions, artifact generation, review gating, and approval flow.
-- `app/docx_processor.py`: Word-first DOCX pipeline. Decides teacher/student mode, strips source branding and answers, rebuilds the header, and adds student blank space or handout labels.
-- `app/docx_converter.py`: Converts generated DOCX files to PDF through Word COM first, then a fallback renderer.
-- `app/parser.py`: Extracts text and question structure from DOCX/PDF so later steps can decide whether the file is safe to process automatically.
-- `app/naming.py`: Produces user-facing artifact names from filename hints, target fields, and extracted text.
-- `app/templates.py`: HTML renderers for both template-based output and PDF fidelity preview output.
-- `app/reviewer.py` and `app/visual_review.py`: Rule review and visual review helpers used before a job can enter human approval.
-- `app/storage.py`, `app/database.py`, `app/models.py`, `app/schemas.py`, `app/utils.py`, `app/config.py`: Shared plumbing for persistence, storage, IDs, JSON helpers, and runtime settings.
+- `app/main.py`：FastAPI 接口层，负责上传、鉴权、任务增删查改、产物预览/下载，并把后台工作交给 `workflow.py`。
+- `app/workflow.py`：后台队列和工作线程调度核心，负责状态流转、产物生成、审核闸口和批准流程。
+- `app/docx_processor.py`：Word-first DOCX 处理链路，负责判定师生版模式、清理来源品牌与答案、重建页眉，并补学生版留白或讲义标签。
+- `app/docx_converter.py`：把生成后的 DOCX 转成 PDF，优先走 Word COM，失败时回退到渲染器。
+- `app/parser.py`：从 DOCX/PDF 中抽取文本和题目结构，供后续判断能否安全自动处理。
+- `app/naming.py`：根据文件名线索、目标字段和抽取文本生成面向用户的产物名称。
+- `app/templates.py`：负责模板版输出和 PDF 保真预览输出的 HTML 渲染。
+- `app/reviewer.py` 和 `app/visual_review.py`：任务进入人工批准前使用的规则审核和视觉审核辅助函数。
+- `app/storage.py`、`app/database.py`、`app/models.py`、`app/schemas.py`、`app/utils.py`、`app/config.py`：持久化、存储、ID、JSON 辅助函数和运行时配置等基础设施。
 
-## Repository scope
+## 仓库范围
 
-Runtime folders such as `data/`, `tmp/`, `backups/`, local virtual environments, caches, and local databases are intentionally ignored by Git so the repository stays focused on code and docs instead of generated artifacts.
+`data/`、`tmp/`、`backups/`、本地虚拟环境、缓存和本地数据库等运行时目录会被 Git 忽略，这样仓库能聚焦在代码和说明文档上，而不是生成产物。

@@ -1,5 +1,4 @@
-"""Pydantic request and response schemas exposed by the API layer."""
-
+"""API 层对外暴露的 Pydantic 请求和响应结构。"""
 from __future__ import annotations
 
 from typing import Any
@@ -8,7 +7,7 @@ from pydantic import BaseModel, Field
 
 
 class CreateJobRequest(BaseModel):
-    """Request body for creating a job from uploaded source files."""
+    """根据上传源文件创建任务时使用的请求体。"""
     source_file_ids: list[str]
     target: dict[str, Any] = Field(default_factory=dict)
     options: dict[str, Any] = Field(default_factory=dict)
@@ -16,19 +15,19 @@ class CreateJobRequest(BaseModel):
 
 
 class ApproveJobRequest(BaseModel):
-    """Request body for human approval of a reviewed job."""
+    """人工批准审核中任务时使用的请求体。"""
     final_download_name: str | None = None
 
 
 class BatchCreateJobRequest(BaseModel):
-    """Request body for creating many jobs from a batch of files."""
+    """根据一批文件创建多个任务时使用的请求体。"""
     source_file_ids: list[str]
     options: dict[str, Any] = Field(default_factory=dict)
     notify: dict[str, Any] = Field(default_factory=dict)
 
 
 class JobResponse(BaseModel):
-    """Public response model returned by job lifecycle endpoints."""
+    """任务生命周期接口返回的公共响应模型。"""
     job_id: str
     status: str
     current_step: str | None = None
@@ -42,7 +41,7 @@ class JobResponse(BaseModel):
 
 
 class UpdateModelConfigRequest(BaseModel):
-    """Request body for updating runtime model configuration overrides."""
+    """更新运行时模型配置覆盖项时使用的请求体。"""
     api_key: str | None = None
     model: str | None = None
     base_url: str | None = None

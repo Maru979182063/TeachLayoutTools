@@ -1,5 +1,4 @@
-"""FastAPI entrypoints for uploads, job lifecycle actions, runtime inspection, and artifact delivery."""
-
+"""FastAPI 接口入口，负责上传、任务生命周期、运行时信息和产物分发。"""
 from __future__ import annotations
 
 import re
@@ -40,14 +39,14 @@ USER_ID_PATTERN = re.compile(r"^[A-Za-z0-9._@-]{3,64}$")
 
 @app.on_event("startup")
 def startup_runtime() -> None:
-    """Start background workers and recover recent unfinished jobs when the API boots."""
+    """API 启动时拉起后台工作线程，并恢复最近未完成的任务。"""
     ensure_worker_pool_started()
     requeue_incomplete_jobs()
 
 
 @app.on_event("shutdown")
 def shutdown_runtime() -> None:
-    """Stop worker threads when the API process shuts down."""
+    """API 进程关闭时停止工作线程。"""
     stop_worker_pool()
 
 
@@ -55,7 +54,7 @@ def current_user(
     x_user_id: str | None = Header(default=None),
     x_access_key: str | None = Header(default=None),
 ) -> str:
-    """Resolve the current API caller from request headers and enforce optional access-key checks."""
+    """从请求头解析当前调用者，并按需校验访问密钥。"""
     if settings.require_access_key:
         if not x_access_key:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"error_code": "ACCESS_KEY_REQUIRED"})
@@ -72,7 +71,7 @@ def current_user(
 
 
 def ensure_queue_capacity(db: Session, user_id: str, requested_jobs: int = 1) -> None:
-    """Reject new work when per-user or global queue limits would be exceeded."""
+    """当用户级或全局队列上限将被突破时，拒绝继续入队。"""
     user_pending = (
         db.query(func.count(MaterialJob.id))
         .filter(MaterialJob.owner_id == user_id, MaterialJob.status.not_in(tuple(TERMINAL_STATUSES)))
@@ -99,7 +98,7 @@ def ensure_queue_capacity(db: Session, user_id: str, requested_jobs: int = 1) ->
 
 
 def job_to_response(job: MaterialJob) -> JobResponse:
-    """Convert a MaterialJob row into the public API response shape."""
+    """把 MaterialJob 数据行转换成对外返回的响应结构。"""
     return JobResponse(
         job_id=job.id,
         status=job.status.value,
@@ -116,13 +115,13 @@ def job_to_response(job: MaterialJob) -> JobResponse:
 
 @app.get("/health")
 def health():
-    """Return a minimal health check for probes and local smoke tests."""
+    """返回最小健康检查结果，供探针和本地冒烟测试使用。"""
     return {"status": "ok"}
 
 
 @app.get("/api/runtime")
 def runtime_info(user_id: str = Depends(current_user)):
-    """Expose queue, auth, and storage settings that help explain current runtime behavior."""
+    """返回队列、鉴权和存储设置，方便解释当前运行时状态。"""
     ensure_worker_pool_started()
     return {
         "user_id": user_id,
@@ -148,13 +147,13 @@ def runtime_info(user_id: str = Depends(current_user)):
 
 @app.get("/api/model-config")
 def model_config():
-    """Return the currently effective model-planner configuration."""
+    """返回当前实际生效的模型规划配置。"""
     return model_config_status()
 
 
 @app.put("/api/model-config")
 def put_model_config(request: UpdateModelConfigRequest):
-    """Persist runtime model-planner overrides from the workbench or API client."""
+    """保存工作台或 API 客户端提交的运行时模型配置覆盖项。"""
     return update_runtime_model_config(
         api_key=request.api_key,
         model=request.model,
@@ -165,7 +164,7 @@ def put_model_config(request: UpdateModelConfigRequest):
 
 @app.get("/", response_class=HTMLResponse)
 def workbench():
-    """Serve the lightweight local workbench UI."""
+    """返回本地轻量工作台页面。"""
     return FileResponse(Path(__file__).resolve().parent / "static" / "workbench.html")
 
 
@@ -176,7 +175,7 @@ async def upload_file(
     db: Session = Depends(get_db),
     user_id: str = Depends(current_user),
 ):
-    """Store an uploaded source file and register its metadata in the database."""
+    """保存上传的源文件，并把元数据登记到数据库。"""
     try:
         file_type, mime_type = detect_type(file.filename or "", file.content_type or "")
         path, size, checksum = await save_upload(file)
@@ -215,7 +214,7 @@ async def upload_file(
 
 @app.post("/api/material-jobs", response_model=JobResponse)
 def create_job(request: CreateJobRequest, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Create one material-generation job from explicit source file IDs."""
+    """根据明确给出的源文件 ID 创建单个材料生成任务。"""
     if not request.source_file_ids:
         raise HTTPException(status_code=400, detail={"error_code": "FILE_NOT_FOUND"})
     ensure_queue_capacity(db, user_id, len(request.source_file_ids))
@@ -247,7 +246,7 @@ def create_job(request: CreateJobRequest, db: Session = Depends(get_db), user_id
 
 @app.post("/api/batch/material-jobs")
 def create_batch_jobs(request: BatchCreateJobRequest, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Create one job per uploaded file using filename-inferred targets."""
+    """按文件名自动推断目标信息，并为每个上传文件创建任务。"""
     if not request.source_file_ids:
         raise HTTPException(status_code=400, detail={"error_code": "FILE_NOT_FOUND"})
     if len(request.source_file_ids) > settings.batch_upload_limit:
@@ -287,7 +286,7 @@ def create_batch_jobs(request: BatchCreateJobRequest, db: Session = Depends(get_
 
 @app.get("/api/material-jobs/{job_id}", response_model=JobResponse)
 def get_job(job_id: str, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Return one job if it belongs to the current user."""
+    """如果任务属于当前用户，则返回该任务。"""
     job = db.get(MaterialJob, job_id)
     if not job or job.owner_id != user_id:
         raise HTTPException(status_code=404, detail={"error_code": "JOB_NOT_FOUND"})
@@ -296,7 +295,7 @@ def get_job(job_id: str, db: Session = Depends(get_db), user_id: str = Depends(c
 
 @app.get("/api/material-jobs")
 def list_jobs(db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """List the most recent jobs created by the current user."""
+    """列出当前用户最近创建的任务。"""
     jobs = (
         db.query(MaterialJob)
         .filter(MaterialJob.owner_id == user_id)
@@ -309,7 +308,7 @@ def list_jobs(db: Session = Depends(get_db), user_id: str = Depends(current_user
 
 @app.post("/api/material-jobs/{job_id}/cancel", response_model=JobResponse)
 def cancel_job(job_id: str, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Cancel a queued or running job owned by the current user."""
+    """取消当前用户拥有的排队中或运行中任务。"""
     job = db.get(MaterialJob, job_id)
     if not job or job.owner_id != user_id:
         raise HTTPException(status_code=404, detail={"error_code": "JOB_NOT_FOUND"})
@@ -323,7 +322,7 @@ def cancel_job(job_id: str, db: Session = Depends(get_db), user_id: str = Depend
 
 @app.get("/api/material-jobs/{job_id}/artifacts")
 def list_artifacts(job_id: str, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """List all artifacts generated for one job, including review and download state."""
+    """列出单个任务的全部产物，包括审核状态和下载状态。"""
     job = db.get(MaterialJob, job_id)
     if not job or job.owner_id != user_id:
         raise HTTPException(status_code=404, detail={"error_code": "JOB_NOT_FOUND"})
@@ -351,7 +350,7 @@ def list_artifacts(job_id: str, db: Session = Depends(get_db), user_id: str = De
 
 @app.post("/api/material-jobs/{job_id}/review/approve", response_model=JobResponse)
 def approve(job_id: str, request: ApproveJobRequest, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Approve a job that is waiting in human review and unlock download artifacts."""
+    """批准处于人工审核中的任务，并解锁可下载产物。"""
     job = db.get(MaterialJob, job_id)
     if not job:
         raise HTTPException(status_code=404, detail={"error_code": "JOB_NOT_FOUND"})
@@ -366,7 +365,7 @@ def approve(job_id: str, request: ApproveJobRequest, db: Session = Depends(get_d
 
 @app.get("/api/artifacts/{artifact_id}/download")
 def download_artifact(artifact_id: str, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Download an approved artifact file when it still exists on disk."""
+    """在文件仍存在时下载已经批准的产物。"""
     artifact = db.get(Artifact, artifact_id)
     if not artifact or artifact.owner_id != user_id:
         raise HTTPException(status_code=404, detail={"error_code": "ARTIFACT_NOT_FOUND"})
@@ -380,7 +379,7 @@ def download_artifact(artifact_id: str, db: Session = Depends(get_db), user_id: 
 
 @app.get("/api/artifacts/{artifact_id}/preview")
 def preview_artifact(artifact_id: str, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Preview reviewable artifacts directly from storage without marking them downloadable."""
+    """直接从存储中预览可审核产物，而不把它标记成可下载。"""
     artifact = db.get(Artifact, artifact_id)
     if not artifact or artifact.owner_id != user_id:
         raise HTTPException(status_code=404, detail={"error_code": "ARTIFACT_NOT_FOUND"})
@@ -394,7 +393,7 @@ def preview_artifact(artifact_id: str, db: Session = Depends(get_db), user_id: s
 
 @app.get("/api/material-jobs/{job_id}/logs")
 def get_logs(job_id: str, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Return the user-visible workflow event log for one job."""
+    """返回单个任务对用户可见的工作流事件日志。"""
     job = db.get(MaterialJob, job_id)
     if not job or job.owner_id != user_id:
         raise HTTPException(status_code=404, detail={"error_code": "JOB_NOT_FOUND"})
@@ -417,7 +416,7 @@ def get_logs(job_id: str, db: Session = Depends(get_db), user_id: str = Depends(
 
 @app.get("/api/material-jobs/{job_id}/notifications")
 def get_notifications(job_id: str, db: Session = Depends(get_db), user_id: str = Depends(current_user)):
-    """Return notification records emitted for one job."""
+    """返回单个任务产生过的通知记录。"""
     job = db.get(MaterialJob, job_id)
     if not job or job.owner_id != user_id:
         raise HTTPException(status_code=404, detail={"error_code": "JOB_NOT_FOUND"})
@@ -443,7 +442,7 @@ def cleanup_expired_artifacts(
     db: Session = Depends(get_db),
     user_id: str = Depends(current_user),
 ):
-    """Delete expired artifact files and remove their database rows."""
+    """删除已过期的产物文件，并清理对应数据库记录。"""
     from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc)

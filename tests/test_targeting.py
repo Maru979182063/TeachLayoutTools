@@ -1,10 +1,9 @@
-"""Focused tests for filename-based target inference."""
-
+"""聚焦文件名目标推断逻辑的测试。"""
 from app.targeting import infer_target_from_filename
 
 
 def test_infer_exam_and_teacher_versions():
-    """Verify infer exam and teacher versions."""
+    """验证infer exam and 教师版 versions。"""
     exam = infer_target_from_filename("2026年中考数学临考冲刺卷（河北专用）（考试版）.docx")
     answer = infer_target_from_filename("2026年中考数学临考冲刺卷（河北专用）（参考答案）.docx")
     topic = infer_target_from_filename("绝对值精选题24道.docx")

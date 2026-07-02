@@ -1,5 +1,4 @@
-"""Runtime model configuration and Doubao request helpers for optional planning."""
-
+"""运行时模型配置和 Doubao 请求辅助函数，用于可选的规划步骤。"""
 from __future__ import annotations
 
 import json
@@ -21,7 +20,7 @@ RUNTIME_MODEL_CONFIG_PATH = DATA_DIR / "runtime_model_config.json"
 
 
 def _load_runtime_model_config() -> dict[str, Any]:
-    """Load runtime model config."""
+    """加载运行时 模型 配置。"""
     if not RUNTIME_MODEL_CONFIG_PATH.exists():
         return {}
     try:
@@ -31,7 +30,7 @@ def _load_runtime_model_config() -> dict[str, Any]:
 
 
 def _save_runtime_model_config(config: dict[str, Any]) -> None:
-    """Save runtime model config."""
+    """保存运行时 模型 配置。"""
     RUNTIME_MODEL_CONFIG_PATH.write_text(
         json.dumps(config, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -39,7 +38,7 @@ def _save_runtime_model_config(config: dict[str, Any]) -> None:
 
 
 def _resolved_model_config() -> dict[str, Any]:
-    """Handle resolved model config."""
+    """处理resolved 模型 配置。"""
     runtime = _load_runtime_model_config()
     api_key = runtime.get("api_key") or DOUBAO_API_KEY
     model = runtime.get("model") or DOUBAO_MODEL
@@ -63,7 +62,7 @@ def update_runtime_model_config(
     base_url: str | None = None,
     enabled: bool | None = None,
 ) -> dict[str, Any]:
-    """Persist runtime overrides for the optional Doubao planner."""
+    """保存可选 Doubao 规划器的运行时覆盖配置。"""
     config = _load_runtime_model_config()
     if api_key is not None:
         config["api_key"] = api_key.strip()
@@ -78,7 +77,7 @@ def update_runtime_model_config(
 
 
 def model_config_status() -> dict[str, Any]:
-    """Return the effective model configuration without exposing the secret key."""
+    """返回当前生效的模型配置，同时不暴露密钥。"""
     resolved = _resolved_model_config()
     return {
         "provider": resolved["provider"],
@@ -91,7 +90,7 @@ def model_config_status() -> dict[str, Any]:
 
 
 def _extract_json(text: str) -> dict[str, Any]:
-    """Extract json."""
+    """提取JSON。"""
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.strip("`")
@@ -104,12 +103,12 @@ def _extract_json(text: str) -> dict[str, Any]:
 
 
 def _powershell_escape(value: str) -> str:
-    """Handle powershell escape."""
+    """处理powershell escape。"""
     return value.replace("'", "''")
 
 
 def _post_chat_via_powershell(url: str, api_key: str, payload: dict[str, Any]) -> dict[str, Any]:
-    """Handle post chat via powershell."""
+    """处理post chat via powershell。"""
     safe_url = _powershell_escape(url)
     safe_auth = _powershell_escape(f"Bearer {api_key}")
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False) as handle:
@@ -145,7 +144,7 @@ def _post_chat_via_powershell(url: str, api_key: str, payload: dict[str, Any]) -
 
 
 def _post_chat_via_curl(url: str, api_key: str, payload: dict[str, Any]) -> dict[str, Any]:
-    """Handle post chat via curl."""
+    """处理post chat via curl。"""
     curl_path = shutil.which("curl.exe") or shutil.which("curl")
     if not curl_path:
         raise RuntimeError("curl_not_available")
@@ -190,7 +189,7 @@ def _post_chat_via_curl(url: str, api_key: str, payload: dict[str, Any]) -> dict
 
 
 def _post_chat_via_httpx(url: str, api_key: str, payload: dict[str, Any]) -> dict[str, Any]:
-    """Handle post chat via httpx."""
+    """处理post chat via httpx。"""
     with httpx.Client(timeout=120, http2=False, trust_env=False) as client:
         response = client.post(
             url,
@@ -202,7 +201,7 @@ def _post_chat_via_httpx(url: str, api_key: str, payload: dict[str, Any]) -> dic
 
 
 def _post_chat(url: str, api_key: str, payload: dict[str, Any]) -> dict[str, Any]:
-    """Handle post chat."""
+    """处理post chat。"""
     primary_error = None
     try:
         return _post_chat_via_httpx(url, api_key, payload)
@@ -220,7 +219,7 @@ def _post_chat(url: str, api_key: str, payload: dict[str, Any]) -> dict[str, Any
 
 
 def plan_with_doubao(parsed_content: dict[str, Any], target: dict[str, Any]) -> dict[str, Any] | None:
-    """Ask Doubao for a lightweight material plan and normalize the response shape."""
+    """向 Doubao 请求轻量材料规划，并把返回结构规范化。"""
     config = _resolved_model_config()
     if not config["enabled"]:
         return None
