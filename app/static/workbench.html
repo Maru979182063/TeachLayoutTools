@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>材料外化工作台</title>
+  <style>
+    :root {
+      --ink: #182230;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --panel: #ffffff;
+      --soft: #f2f4f7;
+      --brand: #0f766e;
+      --brand-dark: #115e59;
+      --warn: #b54708;
+      --bad: #b42318;
+      --ok: #067647;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(15, 118, 110, .08), rgba(255,255,255,0) 280px),
+        #f8fafc;
+    }
+    header {
+      padding: 22px 28px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.86);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 3;
+    }
+    h1 { margin: 0; font-size: 22px; line-height: 1.3; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    main {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      min-height: calc(100vh - 77px);
+    }
+    aside {
+      border-right: 1px solid var(--line);
+      padding: 18px;
+      background: rgba(255,255,255,.7);
+    }
+    section { padding: 18px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .panel h2 {
+      font-size: 15px;
+      margin: 0 0 12px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 10px 0 5px;
+    }
+    input, select {
+      width: 100%;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+    input[type="file"] {
+      height: auto;
+      padding: 9px;
+    }
+    button {
+      height: 36px;
+      border: 0;
+      border-radius: 6px;
+      padding: 0 12px;
+      background: var(--brand);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    button.danger { background: var(--bad); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row > * { flex: 1; }
+    .jobs {
+      display: grid;
+      gap: 8px;
+    }
+    .job {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      cursor: pointer;
+    }
+    .job.active { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(15,118,110,.14); }
+    .job strong {
+      display: block;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    .job small { color: var(--muted); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border-radius: 999px;
+      padding: 0 8px;
+      font-size: 12px;
+      background: var(--soft);
+      color: var(--ink);
+    }
+    .badge.ok { color: var(--ok); background: #ecfdf3; }
+    .badge.warn { color: var(--warn); background: #fffaeb; }
+    .badge.bad { color: var(--bad); background: #fef3f2; }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .artifact-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .artifact {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+    }
+    .artifact h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+    .artifact p { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+    iframe {
+      width: 100%;
+      min-height: 620px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #0b1220;
+      color: #d1e9ff;
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 220px;
+      max-height: 620px;
+      overflow: auto;
+    }
+    .empty {
+      min-height: 320px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.65);
+    }
+    @media (max-width: 920px) {
+      main { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid var(--line); }
+      iframe { min-height: 460px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>材料外化工作台</h1>
+    <p>上传资料，生成标准外化材料，人工确认后开放下载。<span id="modelStatus"></span></p>
+  </header>
+
+  <main>
+    <aside>
+      <div class="panel">
+        <h2>模板素材</h2>
+        <img src="/static/assets/component-library/background-logo.png" alt="背景 logo" style="width: 100%; max-height: 62px; object-fit: contain; object-position: left center;" />
+      </div>
+
+      <div class="panel">
+        <h2>新建任务</h2>
+        <label>上传文件</label>
+        <input id="fileInput" type="file" accept=".pdf,.docx,.zip" multiple />
+        <label>标题</label>
+        <input id="titleInput" value="九年级上学期期末真题必刷常考60题" />
+        <div class="row">
+          <div>
+            <label>年级</label>
+            <input id="gradeInput" value="九年级" />
+          </div>
+          <div>
+            <label>学科</label>
+            <input id="subjectInput" value="数学" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>阶段</label>
+            <input id="termInput" value="上学期期末" />
+          </div>
+          <div>
+            <label>教材</label>
+            <input id="textbookInput" value="人教版" />
+          </div>
+        </div>
+        <label>输出版本</label>
+        <select id="versionInput">
+          <option value="student">学生版</option>
+          <option value="teacher">解析版</option>
+        </select>
+        <div class="row" style="margin-top: 12px;">
+          <button id="createBtn">上传并生成</button>
+          <button id="batchBtn" type="button">批量自动识别</button>
+          <button class="secondary" id="refreshBtn" type="button">刷新</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>任务列表</h2>
+        <div id="jobs" class="jobs"></div>
+      </div>
+    </aside>
+
+    <section>
+      <div id="detail" class="empty">选择或创建一个任务后查看产物</div>
+    </section>
+  </main>
+
+  <script>
+    const authState = {
+      userId: "",
+      accessKey: ""
+    };
+    let selectedJobId = null;
+    let pollTimer = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function badgeClass(status) {
+      if (status === "SUCCEEDED") return "ok";
+      if (status === "FAILED" || status === "CANCELLED") return "bad";
+      if (status === "HUMAN_REVIEW_REQUIRED") return "warn";
+      return "";
+    }
+
+    function ensureIdentity() {
+      if (!authState.userId) {
+        authState.userId = (localStorage.getItem("misc-agent-user-id") || "").trim();
+      }
+      if (!authState.userId) {
+        authState.userId = (prompt("请输入你的账号标识（英文、数字或邮箱）", "teacher-01") || "").trim();
+        if (!authState.userId) throw new Error("USER_ID_REQUIRED");
+        localStorage.setItem("misc-agent-user-id", authState.userId);
+      }
+      if (!authState.accessKey) {
+        authState.accessKey = localStorage.getItem("misc-agent-access-key") || "";
+      }
+      return authState;
+    }
+
+    async function api(path, options = {}) {
+      const auth = ensureIdentity();
+      const headers = Object.assign({"X-User-Id": auth.userId}, options.headers || {});
+      if (auth.accessKey) headers["X-Access-Key"] = auth.accessKey;
+      const res = await fetch(path, Object.assign({}, options, {headers}));
+      if (!res.ok) {
+        let detail = {};
+        try { detail = await res.json(); } catch (_) {}
+        if (detail.detail?.error_code === "ACCESS_KEY_REQUIRED" || detail.detail?.error_code === "ACCESS_KEY_INVALID") {
+          authState.accessKey = (prompt("请输入访问口令", authState.accessKey || "") || "").trim();
+          if (authState.accessKey) {
+            localStorage.setItem("misc-agent-access-key", authState.accessKey);
+          } else {
+            localStorage.removeItem("misc-agent-access-key");
+          }
+        }
+        throw new Error(detail.detail?.error_code || detail.error_code || res.statusText);
+      }
+      return res;
+    }
+
+    async function loadJobs() {
+      const res = await api("/api/material-jobs");
+      const data = await res.json();
+      $("jobs").innerHTML = data.jobs.map(job => `
+        <div class="job ${job.job_id === selectedJobId ? "active" : ""}" data-job="${job.job_id}">
+          <strong>${job.job_id}</strong>
+          <small>${job.current_step || ""}</small><br />
+          <span class="badge ${badgeClass(job.status)}">${job.status}</span>
+        </div>
+      `).join("") || `<div class="empty" style="min-height: 120px;">暂无任务</div>`;
+      document.querySelectorAll(".job[data-job]").forEach(el => {
+        el.addEventListener("click", () => selectJob(el.dataset.job));
+      });
+    }
+
+    async function loadModelStatus() {
+      try {
+        const config = await (await api("/api/model-config")).json();
+        $("modelStatus").textContent = ` · 模型：${config.enabled ? "豆包已配置" : "Mock Planner"} · ${config.model}`;
+      } catch (_) {
+        $("modelStatus").textContent = "";
+      }
+    }
+
+    async function createJob() {
+      const file = $("fileInput").files[0];
+      if (!file) {
+        alert("先选择一个 PDF、DOCX 或 ZIP 文件");
+        return;
+      }
+      $("createBtn").disabled = true;
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("file_role", "source_material");
+        const uploadRes = await api("/api/files", {method: "POST", body: form});
+        const uploaded = await uploadRes.json();
+        const jobRes = await api("/api/material-jobs", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            source_file_ids: [uploaded.file_id],
+            target: {
+              material_type: "review_handout",
+              version: $("versionInput").value,
+              subject: $("subjectInput").value,
+              grade: $("gradeInput").value,
+              term: $("termInput").value,
+              textbook_version: $("textbookInput").value,
+              title: $("titleInput").value
+            },
+            options: {max_auto_fix_count: 3}
+          })
+        });
+        const job = await jobRes.json();
+        selectedJobId = job.job_id;
+        await loadJobs();
+        await renderJob();
+        startPolling();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        $("createBtn").disabled = false;
+      }
+    }
+
+    async function createBatchJobs() {
+      const files = Array.from($("fileInput").files || []);
+      if (!files.length) {
+        alert("先选择一批 PDF、DOCX 或 ZIP 文件");
+        return;
+      }
+      $("batchBtn").disabled = true;
+      try {
+        const fileIds = [];
+        for (const file of files) {
+          const form = new FormData();
+          form.append("file", file);
+          form.append("file_role", "source_material");
+          const uploadRes = await api("/api/files", {method: "POST", body: form});
+          const uploaded = await uploadRes.json();
+          fileIds.push(uploaded.file_id);
+        }
+        const batchRes = await api("/api/batch/material-jobs", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({source_file_ids: fileIds, options: {max_auto_fix_count: 3}})
+        });
+        const batch = await batchRes.json();
+        const first = batch.jobs.find(item => item.job_id);
+        if (first) selectedJobId = first.job_id;
+        await loadJobs();
+        if (selectedJobId) await renderJob();
+        startPolling();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        $("batchBtn").disabled = false;
+      }
+    }
+
+    async function selectJob(jobId) {
+      selectedJobId = jobId;
+      await loadJobs();
+      await renderJob();
+      startPolling();
+    }
+
+    function startPolling() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        if (!selectedJobId) return;
+        await loadJobs();
+        await renderJob(false);
+      }, 2000);
+    }
+
+    async function renderJob(allowPreview = true) {
+      if (!selectedJobId) return;
+      const detail = await (await api(`/api/material-jobs/${selectedJobId}`)).json();
+      const artifacts = await (await api(`/api/material-jobs/${selectedJobId}/artifacts`)).json();
+      const currentHtml = artifacts.artifacts.filter(a => a.type === "html").at(-1);
+      const suggestedName = currentHtml?.download_name || "";
+      $("detail").className = "";
+      $("detail").innerHTML = `
+        <div class="toolbar">
+          <span class="badge ${badgeClass(detail.status)}">${detail.status}</span>
+          <span class="badge">渲染 ${detail.render_attempt}</span>
+          <span class="badge">审核 ${detail.review_round}</span>
+          <span class="badge">自动修复 ${detail.auto_fix_count}/${detail.max_auto_fix_count}</span>
+          <button class="secondary" id="cancelBtn">取消</button>
+        </div>
+        <div class="panel">
+          <h2>人工审核</h2>
+          <label>最终下载文件名</label>
+          <div class="row">
+            <input id="finalNameInput" value="${suggestedName.replaceAll('"', "&quot;")}" />
+            <button id="approveBtn" ${detail.status !== "HUMAN_REVIEW_REQUIRED" ? "disabled" : ""}>确认通过</button>
+          </div>
+          <p style="color: var(--muted); margin: 10px 0 0; font-size: 13px;">${detail.user_visible_message || ""}</p>
+        </div>
+        <div class="artifact-list">
+          ${artifacts.artifacts.map(a => `
+            <div class="artifact">
+              <h3>${a.display_name}</h3>
+              <p>${a.type} · 置信度 ${Math.round(a.name_confidence * 100)}% · ${a.approved_for_download ? "可下载" : "待审核"}</p>
+              <div class="row">
+                <button class="secondary previewBtn" data-artifact="${a.artifact_id}">预览</button>
+                <button class="downloadBtn" data-url="${a.download_url || ""}" ${a.download_url ? "" : "disabled"}>下载</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <div id="previewPane">${currentHtml && allowPreview ? `<iframe src="/api/artifacts/${currentHtml.artifact_id}/preview"></iframe>` : `<div class="empty">选择产物预览</div>`}</div>
+      `;
+      $("approveBtn").addEventListener("click", approveJob);
+      $("cancelBtn").addEventListener("click", cancelJob);
+      document.querySelectorAll(".previewBtn").forEach(btn => btn.addEventListener("click", () => previewArtifact(btn.dataset.artifact)));
+      document.querySelectorAll(".downloadBtn").forEach(btn => btn.addEventListener("click", () => {
+        if (btn.dataset.url) window.open(btn.dataset.url, "_blank");
+      }));
+    }
+
+    async function previewArtifact(artifactId) {
+      const res = await api(`/api/artifacts/${artifactId}/preview`);
+      const type = res.headers.get("content-type") || "";
+      if (type.includes("text/html")) {
+        $("previewPane").innerHTML = `<iframe src="/api/artifacts/${artifactId}/preview"></iframe>`;
+      } else if (type.includes("application/pdf")) {
+        $("previewPane").innerHTML = `<iframe src="/api/artifacts/${artifactId}/preview"></iframe>`;
+      } else {
+        const text = await res.text();
+        $("previewPane").innerHTML = `<pre>${text.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}</pre>`;
+      }
+    }
+
+    async function approveJob() {
+      if (!selectedJobId) return;
+      try {
+        await api(`/api/material-jobs/${selectedJobId}/review/approve`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({final_download_name: $("finalNameInput").value})
+        });
+        await loadJobs();
+        await renderJob();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function cancelJob() {
+      if (!selectedJobId) return;
+      try {
+        await api(`/api/material-jobs/${selectedJobId}/cancel`, {method: "POST"});
+        await loadJobs();
+        await renderJob();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    $("createBtn").addEventListener("click", createJob);
+    $("batchBtn").addEventListener("click", createBatchJobs);
+    $("refreshBtn").addEventListener("click", async () => {
+      await loadJobs();
+      if (selectedJobId) await renderJob();
+    });
+    loadModelStatus();
+    loadJobs();
+  </script>
+</body>
+</html>

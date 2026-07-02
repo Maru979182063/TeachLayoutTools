@@ -1,0 +1,17 @@
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+data/
+tmp/
+backups/
+
+*.db
+*.sqlite
+*.sqlite3
+
+.DS_Store
+Thumbs.db
